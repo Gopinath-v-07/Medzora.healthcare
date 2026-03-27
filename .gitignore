@@ -52,3 +52,12 @@ Thumbs.db
 *.tmp
 gemini_models_test.json
 models.txt
+
+# Local caches and debug artifacts
+cache/
+services/cache/
+vite_output.txt
+tsc_errors.txt
+tsc_errors_utf8.txt
+metadata.json
+services/sdk
