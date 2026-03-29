@@ -339,11 +339,13 @@ const PatientDashboard: React.FC<PatientDashboardProps> = ({ patientProfile, rec
     const [editedProfile, setEditedProfile] = useState<UserProfile>(patientProfile);
     const historyFileRef = useRef<HTMLInputElement>(null);
 
-    // RURAL DIGNITY MODULE: Global Secret Voice Access Listener
+    // Global voice listener (best-effort only; never block UI if browser rejects microphone access)
     useEffect(() => {
-        if (!('webkitSpeechRecognition' in window)) return;
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return;
 
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) return;
+
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = false;
@@ -351,15 +353,30 @@ const PatientDashboard: React.FC<PatientDashboardProps> = ({ patientProfile, rec
 
         recognition.onresult = (event: any) => {
             const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-            // HACKATHON DEMO: Secret Code Words (Emma/அம்மா)
+            // Secret code words for quick navigation
             if (transcript.includes('emma') || transcript.includes('அம்மா')) {
                 setActiveTab('dignity-companion');
                 setSelectedRecord(null);
             }
         };
 
-        recognition.start();
-        return () => recognition.stop();
+        recognition.onerror = () => {
+            // Keep app stable even if mic permissions are denied.
+        };
+
+        try {
+            recognition.start();
+        } catch {
+            // Ignore start errors (e.g., permission/user gesture requirements)
+        }
+
+        return () => {
+            try {
+                recognition.stop();
+            } catch {
+                // Ignore stop errors if recognition did not start.
+            }
+        };
     }, []);
 
     const handleListen = () => {
